@@ -112,7 +112,6 @@ func parseApisEndpoint(outDir, url string, pretty bool) error {
 }
 
 func writeJson(outDir, name string, pretty bool, v any) error {
-	fmt.Printf("writeJson type: %T\n", v)
 	file := filepath.Join(outDir, name+".json")
 	fmt.Printf("write %s\n", file)
 	indent := ""
