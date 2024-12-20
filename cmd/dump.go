@@ -90,20 +90,42 @@ func parseApisEndpoint(outDir, url string, pretty bool) error {
 	body = regRef.ReplaceAllString(body, `"$1.json"`)
 	scms := gjson.Get(body, "components.schemas").Map()
 	for name, schema := range scms {
-		name = strings.ToLower(name)
-		if schemas.Exists(outDir, name) {
-			continue
-		}
 		m, ok := schema.Value().(map[string]any)
 		if !ok {
 			fmt.Printf("WARN: invalid schema: %s\n", schema.Raw)
 			continue
 		}
+		var filename string
 		gvk := schema.Get(XGVK_NAME + ".0")
 		if gvk.Exists() {
-			modifyGVK(m, gvk, name)
+			group := gvk.Get("group").String()
+			version := gvk.Get("version").String()
+			kind := gvk.Get("kind").String()
+			if version == "" || kind == "" {
+				fmt.Printf("WARN: skip empty version or kind: %s\n", name)
+				continue
+			}
+
+			var apiVersion string
+			if group != "" {
+				apiVersion = group + "/" + version
+				filename = group + "-" + version
+			} else {
+				apiVersion = version
+				filename = version
+			}
+			filename = kind + "-" + filename
+			setMap(m, []string{apiVersion}, "properties", "apiVersion", "enum")
+			setMap(m, []string{kind}, "properties", "kind", "enum")
+			m["required"] = []string{"apiVersion", "kind"}
+		} else {
+			filename = name
 		}
-		err = writeJson(outDir, name, pretty, m)
+		filename = strings.ToLower(filename)
+		if schemas.Exists(outDir, filename) {
+			continue
+		}
+		err = writeJson(outDir, filename, pretty, m)
 		if err != nil {
 			return err
 		}
@@ -127,26 +149,6 @@ func writeJson(outDir, name string, pretty bool, v any) error {
 
 const XGVK_NAME = "x-kubernetes-group-version-kind"
 
-func modifyGVK(schema map[string]any, gvk gjson.Result, name string) {
-	// fmt.Printf("schema map: %+v\n", schema)
-	group := gvk.Get("group").String()
-	version := gvk.Get("version").String()
-	kind := gvk.Get("kind").String()
-	if version == "" || kind == "" {
-		fmt.Printf("WARN: skip empty version or kind: %s\n", name)
-		return
-	}
-	var apiVersion string
-	if group != "" {
-		apiVersion = group + "/" + version
-	} else {
-		apiVersion = version
-	}
-	setMap(schema, []string{apiVersion}, "properties", "apiVersion", "enum")
-	setMap(schema, []string{kind}, "properties", "kind", "enum")
-	schema["required"] = []string{"apiVersion", "kind"}
-}
-
 func setMap(m map[string]any, value any, keys ...string) {
 	var ok bool
 	for i := 0; i < len(keys); i++ {
@@ -157,10 +159,9 @@ func setMap(m map[string]any, value any, keys ...string) {
 		} else {
 			m, ok = m[key].(map[string]any)
 			if !ok {
-				fmt.Printf("WARN: invalid type: %T(%s)\n", m[key], key)
+				// fmt.Printf("WARN: invalid type: %T(%s) - %v\n", m[key], key, m)
 				return
 			}
 		}
-
 	}
 }
