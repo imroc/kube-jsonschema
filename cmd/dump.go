@@ -27,7 +27,7 @@ type PathInfo struct {
 func NewDumpCmd(args []string) *cobra.Command {
 	var address, outDir string
 	var port int
-	var pretty bool
+	var pretty, force bool
 
 	cmd := &cobra.Command{
 		Use:               "dump",
@@ -58,7 +58,7 @@ func NewDumpCmd(args []string) *cobra.Command {
 					continue
 				}
 				urlPath := info.ServerRelativeURL
-				err = parseApisEndpoint(outDir, fmt.Sprintf("http://%s:%d%s", address, port, urlPath), pretty)
+				err = parseApisEndpoint(outDir, fmt.Sprintf("http://%s:%d%s", address, port, urlPath), pretty, force)
 				if err != nil {
 					fmt.Println("ERROR:", err.Error())
 				}
@@ -72,12 +72,13 @@ func NewDumpCmd(args []string) *cobra.Command {
 	flags.StringVar(&outDir, "out-dir", "kubeschemas", "json schema output directory")
 	flags.IntVar(&port, "port", 8001, "The port on which kubectl proxy is listening.")
 	flags.BoolVar(&pretty, "pretty", true, "whether write json in pretty format")
+	flags.BoolVar(&force, "force", false, "whether to override the existed json schema file")
 	return cmd
 }
 
 var regRef = regexp.MustCompile(`"#/components/schemas/([^"]+)"`)
 
-func parseApisEndpoint(outDir, url string, pretty bool) error {
+func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 	resp, err := req.R().Get(url)
 	if err != nil {
 		return err
@@ -122,9 +123,10 @@ func parseApisEndpoint(outDir, url string, pretty bool) error {
 			filename = name
 		}
 		filename = strings.ToLower(filename)
-		if schemas.Exists(outDir, filename) {
+		if !force && schemas.Exists(outDir, filename) {
 			continue
 		}
+		modifySchema(m)
 		err = writeJson(outDir, filename, pretty, m)
 		if err != nil {
 			return err
