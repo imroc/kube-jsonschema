@@ -96,7 +96,6 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 			fmt.Printf("WARN: invalid schema: %s\n", schema.Raw)
 			continue
 		}
-		var filename string
 		gvk := schema.Get(XGVK_NAME + ".0")
 		if gvk.Exists() {
 			group := gvk.Get("group").String()
@@ -106,28 +105,21 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 				fmt.Printf("WARN: skip empty version or kind: %s\n", name)
 				continue
 			}
-
 			var apiVersion string
 			if group != "" {
 				apiVersion = group + "/" + version
-				filename = group + "-" + version
 			} else {
 				apiVersion = version
-				filename = version
 			}
-			filename = kind + "-" + filename
 			setMap(m, []string{apiVersion}, "properties", "apiVersion", "enum")
 			setMap(m, []string{kind}, "properties", "kind", "enum")
 			m["required"] = []string{"apiVersion", "kind"}
-		} else {
-			filename = name
 		}
-		filename = strings.ToLower(filename)
-		if !force && schemas.Exists(outDir, filename) {
+		if !force && schemas.Exists(outDir, name) {
 			continue
 		}
 		modifySchema(m)
-		err = writeJson(outDir, filename, pretty, m)
+		err = writeJson(outDir, name, pretty, m)
 		if err != nil {
 			return err
 		}
