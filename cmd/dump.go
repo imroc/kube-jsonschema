@@ -115,6 +115,7 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 			setMap(m, []string{kind}, "properties", "kind", "enum")
 			m["required"] = []string{"apiVersion", "kind"}
 		}
+		name = strings.ToLower(name)
 		if !force && schemas.Exists(outDir, name) {
 			continue
 		}
