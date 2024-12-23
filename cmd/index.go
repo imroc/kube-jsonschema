@@ -32,9 +32,14 @@ func NewIndexCmd(args []string) *cobra.Command {
 			return writePrettyJson(&allJson, filepath.Join(outDir, "kubernetes.json"))
 		},
 	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
 	cmd.SetArgs(args)
 	flags := cmd.Flags()
-	flags.StringVar(&outDir, "out-dir", "kubeschemas", "json schema output directory")
+	flags.StringVar(&outDir, "out-dir", cwd, "json schema output directory")
 	flags.BoolVar(&pretty, "pretty", true, "whether write json in pretty format")
 	return cmd
 }

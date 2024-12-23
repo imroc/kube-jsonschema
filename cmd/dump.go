@@ -66,10 +66,14 @@ func NewDumpCmd(args []string) *cobra.Command {
 			return nil
 		},
 	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 	cmd.SetArgs(args)
 	flags := cmd.Flags()
 	flags.StringVar(&address, "address", "127.0.0.1", "The IP address on which kubectl proxy is serving on.")
-	flags.StringVar(&outDir, "out-dir", "kubeschemas", "json schema output directory")
+	flags.StringVar(&outDir, "out-dir", cwd, "json schema output directory")
 	flags.IntVar(&port, "port", 8001, "The port on which kubectl proxy is listening.")
 	flags.BoolVar(&pretty, "pretty", true, "whether write json in pretty format")
 	flags.BoolVar(&force, "force", false, "whether to override the existed json schema file")
