@@ -69,7 +69,8 @@ func walkDir(outDir string, refs *[]string) error {
 		if !schema.Get("properties.kind").Exists() {
 			return nil
 		}
-		*refs = append(*refs, d.Name())
+		dir := filepath.Base(filepath.Dir(path))
+		*refs = append(*refs, dir+"/"+d.Name())
 		return nil
 	})
 	return nil

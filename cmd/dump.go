@@ -87,8 +87,14 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 		return errors.New("unexpected status: " + resp.GetStatus())
 	}
 	body := resp.String()
-	body = regRef.ReplaceAllStringFunc(body, strings.ToLower)
-	body = regRef.ReplaceAllString(body, `"$1.json"`)
+	body = regRef.ReplaceAllStringFunc(body, func(s string) string {
+		s = strings.TrimPrefix(s, `"#/components/schemas/`)
+		s = strings.TrimSuffix(s, `"`)
+		filename := GetFilenameByName(s)
+		return `"../` + filename + `.json"`
+	})
+	// body = regRef.ReplaceAllStringFunc(body, strings.ToLower)
+	// body = regRef.ReplaceAllString(body, `"$1.json"`)
 	scms := gjson.Get(body, "components.schemas").Map()
 	for name, schema := range scms {
 		m, ok := schema.Value().(map[string]any)
@@ -116,11 +122,12 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 			m["required"] = []string{"apiVersion", "kind"}
 		}
 		name = strings.ToLower(name)
-		if !force && schemas.Exists(outDir, name) {
+		filename := GetFilenameByName(name)
+		if !force && schemas.Exists(outDir, filename) {
 			continue
 		}
 		modifySchema(m)
-		err = writeJson(outDir, name, pretty, m)
+		err = writeJson(outDir, filename, pretty, m)
 		if err != nil {
 			return err
 		}
@@ -129,8 +136,15 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 }
 
 func writeJson(outDir, name string, pretty bool, v any) error {
-	file := filepath.Join(outDir, name+".json")
-	fmt.Printf("write %s\n", file)
+	filePath := filepath.Join(outDir, name+".json")
+	fmt.Printf("write %s\n", filePath)
+	dir := filepath.Dir(filePath)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err := os.MkdirAll(dir, 0755)
+		if err != nil {
+			return err
+		}
+	}
 	indent := ""
 	if pretty {
 		indent = "  "
@@ -139,7 +153,7 @@ func writeJson(outDir, name string, pretty bool, v any) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(file, data, 0644)
+	return os.WriteFile(filePath, data, 0644)
 }
 
 const XGVK_NAME = "x-kubernetes-group-version-kind"
