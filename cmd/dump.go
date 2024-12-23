@@ -26,7 +26,6 @@ type PathInfo struct {
 
 func NewDumpCmd(args []string) *cobra.Command {
 	var address, outDir string
-	var port int
 	var pretty, force bool
 
 	cmd := &cobra.Command{
@@ -35,7 +34,16 @@ func NewDumpCmd(args []string) *cobra.Command {
 		DisableAutoGenTag: true,
 		Args:              cobra.ArbitraryArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			url := fmt.Sprintf("http://%s:%d/openapi/v3", address, port)
+			if address == "" {
+				cmd, port, err := runKubectlProxy()
+				if err != nil {
+					return err
+				}
+				address = fmt.Sprintf("%s:%s", "127.0.0.1", port)
+				defer cmd.Process.Kill()
+			}
+
+			url := fmt.Sprintf("http://%s/openapi/v3", address)
 			var root OpenAPIV3Root
 			_, err := req.R().SetSuccessResult(&root).Get(url)
 			if err != nil {
@@ -58,7 +66,7 @@ func NewDumpCmd(args []string) *cobra.Command {
 					continue
 				}
 				urlPath := info.ServerRelativeURL
-				err = parseApisEndpoint(outDir, fmt.Sprintf("http://%s:%d%s", address, port, urlPath), pretty, force)
+				err = parseApisEndpoint(outDir, fmt.Sprintf("http://%s%s", address, urlPath), pretty, force)
 				if err != nil {
 					fmt.Println("ERROR:", err.Error())
 				}
@@ -72,9 +80,8 @@ func NewDumpCmd(args []string) *cobra.Command {
 	}
 	cmd.SetArgs(args)
 	flags := cmd.Flags()
-	flags.StringVar(&address, "address", "127.0.0.1", "The IP address on which kubectl proxy is serving on.")
+	flags.StringVar(&address, "address", "", "The IP address on which kubectl proxy is serving on.")
 	flags.StringVar(&outDir, "out-dir", cwd, "json schema output directory")
-	flags.IntVar(&port, "port", 8001, "The port on which kubectl proxy is listening.")
 	flags.BoolVar(&pretty, "pretty", true, "whether write json in pretty format")
 	flags.BoolVar(&force, "force", false, "whether to override the existed json schema file")
 	return cmd
