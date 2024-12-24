@@ -26,7 +26,7 @@ type PathInfo struct {
 
 func NewDumpCmd(args []string) *cobra.Command {
 	var address, outDir string
-	var pretty, force bool
+	var pretty, force, index bool
 
 	cmd := &cobra.Command{
 		Use:               "dump",
@@ -70,6 +70,9 @@ func NewDumpCmd(args []string) *cobra.Command {
 				if err != nil {
 					fmt.Println("ERROR:", err.Error())
 				}
+			}
+			if index {
+				return runIndex(outDir)
 			}
 			return nil
 		},

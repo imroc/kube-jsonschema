@@ -13,23 +13,13 @@ import (
 // https://raw.githubusercontent.com/imroc/kube-jsonschema/master/schemas/advancedcronjob.json
 func NewIndexCmd(args []string) *cobra.Command {
 	var outDir string
-	var pretty bool
 	cmd := &cobra.Command{
 		Use:               "index",
 		Short:             "generate index for json schema files",
 		DisableAutoGenTag: true,
 		Args:              cobra.ArbitraryArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			refs := []string{}
-			err := walkDir(outDir, &refs)
-			if err != nil {
-				return err
-			}
-			var allJson AllJson
-			for _, file := range refs {
-				allJson.OneOf = append(allJson.OneOf, Ref{file})
-			}
-			return writePrettyJson(&allJson, filepath.Join(outDir, "kubernetes.json"))
+			return runIndex(outDir)
 		},
 	}
 	cwd, err := os.Getwd()
@@ -40,8 +30,20 @@ func NewIndexCmd(args []string) *cobra.Command {
 	cmd.SetArgs(args)
 	flags := cmd.Flags()
 	flags.StringVar(&outDir, "out-dir", cwd, "json schema output directory")
-	flags.BoolVar(&pretty, "pretty", true, "whether write json in pretty format")
 	return cmd
+}
+
+func runIndex(outDir string) error {
+	refs := []string{}
+	err := walkDir(outDir, &refs)
+	if err != nil {
+		return err
+	}
+	var allJson AllJson
+	for _, file := range refs {
+		allJson.OneOf = append(allJson.OneOf, Ref{file})
+	}
+	return writePrettyJson(&allJson, filepath.Join(outDir, "kubernetes.json"))
 }
 
 func walkDir(outDir string, refs *[]string) error {
