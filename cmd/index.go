@@ -34,8 +34,12 @@ func NewIndexCmd(args []string) *cobra.Command {
 }
 
 func runIndex(outDir string) error {
+	outDir, err := filepath.EvalSymlinks(outDir)
+	if err != nil {
+		return err
+	}
 	refs := []string{}
-	err := walkDir(outDir, &refs)
+	err = walkDir(outDir, &refs)
 	if err != nil {
 		return err
 	}
