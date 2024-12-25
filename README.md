@@ -26,3 +26,15 @@ Index json schema:
 ```bash
 kubeschema index
 ```
+
+Dump json schema and index:
+
+```bash
+kubeschema dump --index
+```
+
+Dump json schema and index with extra directory:
+
+```bash
+kubeschema dump --index --extra-dir=../other-dir
+```
