@@ -22,7 +22,9 @@ func ParseName(name string) (group, version, kind string) {
 	return
 }
 
-func GetFilenameByName(name string) string {
-	group, version, kind := ParseName(name)
+func GetFilename(name, group, version, kind string) string {
+	if group == "" {
+		group, version, kind = ParseName(name)
+	}
 	return filepath.Join(group, fmt.Sprintf("%s_%s", kind, version))
 }

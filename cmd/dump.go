@@ -25,7 +25,7 @@ type PathInfo struct {
 }
 
 func NewDumpCmd(args []string) *cobra.Command {
-	var address, outDir string
+	var address, outDir, extraDir string
 	var pretty, force, index bool
 
 	cmd := &cobra.Command{
@@ -72,7 +72,7 @@ func NewDumpCmd(args []string) *cobra.Command {
 				}
 			}
 			if index {
-				return runIndex(outDir)
+				return runIndex(outDir, extraDir)
 			}
 			return nil
 		},
@@ -85,6 +85,7 @@ func NewDumpCmd(args []string) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&address, "address", "", "The IP address on which kubectl proxy is serving on.")
 	flags.StringVar(&outDir, "out-dir", cwd, "json schema output directory")
+	flags.StringVar(&extraDir, "extra-dir", "", "extra json schema directory")
 	flags.BoolVar(&pretty, "pretty", true, "whether write json in pretty format")
 	flags.BoolVar(&index, "index", true, "whether to index all json schema after dump")
 	flags.BoolVar(&force, "force", false, "whether to override the existed json schema file")
@@ -105,7 +106,7 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 	body = regRef.ReplaceAllStringFunc(body, func(s string) string {
 		s = strings.TrimPrefix(s, `"#/components/schemas/`)
 		s = strings.TrimSuffix(s, `"`)
-		filename := GetFilenameByName(s)
+		filename := GetFilename(s, "", "", "")
 		return `"../` + filename + `.json"`
 	})
 	// body = regRef.ReplaceAllStringFunc(body, strings.ToLower)
@@ -118,10 +119,11 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 			continue
 		}
 		gvk := schema.Get(XGVK_NAME + ".0")
+		var group, version, kind string
 		if gvk.Exists() {
-			group := gvk.Get("group").String()
-			version := gvk.Get("version").String()
-			kind := gvk.Get("kind").String()
+			group = gvk.Get("group").String()
+			version = gvk.Get("version").String()
+			kind = gvk.Get("kind").String()
 			if version == "" || kind == "" {
 				fmt.Printf("WARN: skip empty version or kind: %s\n", name)
 				continue
@@ -136,8 +138,8 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 			setMap(m, []string{kind}, "properties", "kind", "enum")
 			m["required"] = []string{"apiVersion", "kind"}
 		}
-		name = strings.ToLower(name)
-		filename := GetFilenameByName(name)
+		filename := GetFilename(name, group, version, kind)
+		filename = strings.ToLower(filename)
 		if !force && schemas.Exists(outDir, filename) {
 			continue
 		}
