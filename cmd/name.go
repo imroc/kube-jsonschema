@@ -26,8 +26,6 @@ func GetFilename(name, group, version, kind string) string {
 	if !strings.Contains(group, ".") {
 		group, version, kind = ParseName(name)
 	}
-	if strings.HasSuffix(group, ".api.k8s.io") {
-		group = strings.TrimSuffix(group, ".api.k8s.io")
-	}
+	group = strings.TrimSuffix(group, ".api.k8s.io")
 	return filepath.Join(group, fmt.Sprintf("%s_%s", kind, version))
 }
