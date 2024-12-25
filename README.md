@@ -6,14 +6,11 @@
 go install github.com/imroc/kubeschema@latest
 ```
 
+## Requirements
+
+- Make sure `kubectl` is installed and can operate current cluster.
+
 ## Usage
-
-Start `kubectl proxy`:
-
-```bash
-$ kubectl proxy
-Starting to serve on 127.0.0.1:8001
-```
 
 Dump json schema:
 
