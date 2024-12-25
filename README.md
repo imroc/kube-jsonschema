@@ -12,19 +12,19 @@ go install github.com/imroc/kubeschema@latest
 
 ## Usage
 
-Dump json schema:
+Dump json schema from current cluster:
 
 ```bash
 kubeschema dump
 ```
 
-Index json schema:
+Index json schema in current directory:
 
 ```bash
 kubeschema index
 ```
 
-Dump json schema and index:
+Dump json schema and index all json schema file:
 
 ```bash
 kubeschema dump --index
