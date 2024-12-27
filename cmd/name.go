@@ -22,10 +22,10 @@ func ParseName(name string) (group, version, kind string) {
 	return
 }
 
-func GetFilename(name, group, version, kind string) string {
+func GetFilename(name string) string {
+	group, version, kind := ParseName(name)
 	if !strings.Contains(group, ".") {
-		group, version, kind = ParseName(name)
+		group = group + ".api.k8s.io"
 	}
-	group = strings.TrimSuffix(group, ".api.k8s.io")
 	return filepath.Join(group, fmt.Sprintf("%s_%s", kind, version))
 }

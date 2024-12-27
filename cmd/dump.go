@@ -106,7 +106,7 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 	body = regRef.ReplaceAllStringFunc(body, func(s string) string {
 		s = strings.TrimPrefix(s, `"#/components/schemas/`)
 		s = strings.TrimSuffix(s, `"`)
-		filename := GetFilename(s, "", "", "")
+		filename := GetFilename(s)
 		return `"../` + filename + `.json"`
 	})
 	// body = regRef.ReplaceAllStringFunc(body, strings.ToLower)
@@ -138,7 +138,7 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 			setMap(m, []string{kind}, "properties", "kind", "enum")
 			m["required"] = []string{"apiVersion", "kind"}
 		}
-		filename := GetFilename(name, group, version, kind)
+		filename := GetFilename(name)
 		filename = strings.ToLower(filename)
 		if !force && schemas.Exists(outDir, filename) {
 			continue
