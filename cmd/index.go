@@ -73,6 +73,9 @@ func walkDir(outDir string, refs *[]string, isExtra bool) error {
 		if d.IsDir() {
 			return nil
 		}
+		if strings.Contains(path, "meta.apis.pkg.apimachinery.k8s.io") {
+			return nil
+		}
 		if filepath.Ext(d.Name()) != ".json" || d.Name() == "kubernetes.json" {
 			return nil
 		}
@@ -89,13 +92,13 @@ func walkDir(outDir string, refs *[]string, isExtra bool) error {
 		if !gvk.Exists() {
 			return nil
 		}
-		if len(gvk.Array()) != 1 {
+		// if len(gvk.Array()) != 1 {
+		// 	return nil
+		// }
+		if len(schema.Get("properties.apiVersion.enum").Array()) == 0 {
 			return nil
 		}
-		if !schema.Get("properties.apiVersion").Exists() {
-			return nil
-		}
-		if !schema.Get("properties.kind").Exists() {
+		if len(schema.Get("properties.kind.enum").Array()) == 0 {
 			return nil
 		}
 		dir := filepath.Base(filepath.Dir(path))
