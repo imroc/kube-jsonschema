@@ -89,6 +89,9 @@ func walkDir(outDir string, refs *[]string, isExtra bool) error {
 		if !gvk.Exists() {
 			return nil
 		}
+		if len(gvk.Array()) != 1 {
+			return nil
+		}
 		if !schema.Get("properties.apiVersion").Exists() {
 			return nil
 		}
