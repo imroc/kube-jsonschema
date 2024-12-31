@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -59,7 +60,11 @@ func runIndex(outDir, extraDir string) error {
 	for _, file := range refs {
 		allJson.OneOf = append(allJson.OneOf, Ref{file})
 	}
-	return writePrettyJson(&allJson, filepath.Join(outDir, "kubernetes.json"))
+	if err = writePrettyJson(&allJson, filepath.Join(outDir, "kubernetes.json")); err != nil {
+		return err
+	}
+	fmt.Printf("%d resource types are been indexed\n", len(refs))
+	return nil
 }
 
 var keys = make(map[string]bool)
@@ -88,13 +93,6 @@ func walkDir(outDir string, refs *[]string, isExtra bool) error {
 			return err
 		}
 		schema := gjson.ParseBytes(bs)
-		gvk := schema.Get(XGVK_NAME)
-		if !gvk.Exists() {
-			return nil
-		}
-		// if len(gvk.Array()) != 1 {
-		// 	return nil
-		// }
 		if len(schema.Get("properties.apiVersion.enum").Array()) == 0 {
 			return nil
 		}
