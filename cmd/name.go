@@ -22,10 +22,23 @@ func ParseName(name string) (group, version, kind string) {
 	return
 }
 
-func GetFilename(name string) string {
+type FileInfo struct {
+	Filename string
+	Group    string
+	Version  string
+	Kind     string
+}
+
+func GetFileInfo(name string) FileInfo {
 	group, version, kind := ParseName(name)
 	if !strings.Contains(group, ".") {
 		group = group + ".api.k8s.io"
 	}
-	return filepath.Join(group, fmt.Sprintf("%s_%s", kind, version))
+	filename := filepath.Join(group, fmt.Sprintf("%s_%s", kind, version))
+	return FileInfo{
+		Filename: filename,
+		Group:    group,
+		Version:  version,
+		Kind:     kind,
+	}
 }

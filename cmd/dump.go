@@ -25,7 +25,7 @@ type PathInfo struct {
 }
 
 func NewDumpCmd(args []string) *cobra.Command {
-	var address, outDir, extraDir string
+	var address, outDir, extraDir, group string
 	var pretty, force, index bool
 
 	cmd := &cobra.Command{
@@ -66,7 +66,7 @@ func NewDumpCmd(args []string) *cobra.Command {
 					continue
 				}
 				urlPath := info.ServerRelativeURL
-				err = parseApisEndpoint(outDir, fmt.Sprintf("http://%s%s", address, urlPath), pretty, force)
+				err = parseApisEndpoint(outDir, fmt.Sprintf("http://%s%s", address, urlPath), group, pretty, force)
 				if err != nil {
 					fmt.Println("ERROR:", err.Error())
 				}
@@ -83,18 +83,19 @@ func NewDumpCmd(args []string) *cobra.Command {
 	}
 	cmd.SetArgs(args)
 	flags := cmd.Flags()
+	flags.StringVar(&group, "group", "", "API group to dump")
 	flags.StringVar(&address, "address", "", "The IP address on which kubectl proxy is serving on.")
 	flags.StringVar(&outDir, "out-dir", cwd, "json schema output directory")
 	flags.StringVar(&extraDir, "extra-dir", "", "extra json schema directory")
 	flags.BoolVar(&pretty, "pretty", true, "whether write json in pretty format")
-	flags.BoolVar(&index, "index", true, "whether to index all json schema after dump")
+	flags.BoolVar(&index, "index", false, "whether to index all json schema after dump")
 	flags.BoolVar(&force, "force", false, "whether to override the existed json schema file")
 	return cmd
 }
 
 var regRef = regexp.MustCompile(`"#/components/schemas/([^"]+)"`)
 
-func parseApisEndpoint(outDir, url string, pretty, force bool) error {
+func parseApisEndpoint(outDir, url, groupOnly string, pretty, force bool) error {
 	resp, err := req.R().Get(url)
 	if err != nil {
 		return err
@@ -106,8 +107,8 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 	body = regRef.ReplaceAllStringFunc(body, func(s string) string {
 		s = strings.TrimPrefix(s, `"#/components/schemas/`)
 		s = strings.TrimSuffix(s, `"`)
-		filename := GetFilename(s)
-		return `"../` + filename + `.json"`
+		fi := GetFileInfo(s)
+		return `"../` + fi.Filename + `.json"`
 	})
 	// body = regRef.ReplaceAllStringFunc(body, strings.ToLower)
 	// body = regRef.ReplaceAllString(body, `"$1.json"`)
@@ -138,9 +139,12 @@ func parseApisEndpoint(outDir, url string, pretty, force bool) error {
 			setMap(m, []string{kind}, "properties", "kind", "enum")
 			m["required"] = []string{"apiVersion", "kind"}
 		}
-		filename := GetFilename(name)
-		filename = strings.ToLower(filename)
-		if !force && schemas.Exists(outDir, filename) {
+		fi := GetFileInfo(name)
+		if groupOnly != "" && fi.Group != groupOnly {
+			continue
+		}
+		filename := strings.ToLower(fi.Filename)
+		if groupOnly == "" && !force && schemas.Exists(outDir, filename) {
 			continue
 		}
 		modifySchema(m)
