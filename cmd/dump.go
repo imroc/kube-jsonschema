@@ -93,7 +93,10 @@ func NewDumpCmd(args []string) *cobra.Command {
 	return cmd
 }
 
-var regRef = regexp.MustCompile(`"#/components/schemas/([^"]+)"`)
+var (
+	regRef = regexp.MustCompile(`"#/components/schemas/([^"]+)"`)
+	regURL = regexp.MustCompile(`/apis/([^/]+)/[^?]+`)
+)
 
 func parseApisEndpoint(outDir, url, groupOnly string, pretty, force bool) error {
 	resp, err := req.R().Get(url)
@@ -103,11 +106,16 @@ func parseApisEndpoint(outDir, url, groupOnly string, pretty, force bool) error 
 	if resp.GetStatusCode() != http.StatusOK {
 		return errors.New("unexpected status: " + resp.GetStatus())
 	}
+	urlMatch := regURL.FindStringSubmatch(url)
+	var groupFromUrl string
+	if len(urlMatch) == 2 {
+		groupFromUrl = urlMatch[1]
+	}
 	body := resp.String()
 	body = regRef.ReplaceAllStringFunc(body, func(s string) string {
 		s = strings.TrimPrefix(s, `"#/components/schemas/`)
 		s = strings.TrimSuffix(s, `"`)
-		fi := GetFileInfo(s)
+		fi := GetFileInfo(s, groupFromUrl)
 		return `"../` + fi.Filename + `.json"`
 	})
 	// body = regRef.ReplaceAllStringFunc(body, strings.ToLower)
@@ -139,7 +147,7 @@ func parseApisEndpoint(outDir, url, groupOnly string, pretty, force bool) error 
 			setMap(m, []string{kind}, "properties", "kind", "enum")
 			m["required"] = []string{"apiVersion", "kind"}
 		}
-		fi := GetFileInfo(name)
+		fi := GetFileInfo(name, groupFromUrl)
 		if groupOnly != "" && fi.Group != groupOnly {
 			continue
 		}
